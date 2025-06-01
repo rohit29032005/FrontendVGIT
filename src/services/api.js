@@ -1,15 +1,18 @@
 import axios from 'axios';
 
-// Determine API base URL based on environment
+// Get API base URL - production vs development
 const getApiBaseUrl = () => {
+    // In production, use environment variable or fallback to your deployed backend
     if (process.env.NODE_ENV === 'production') {
-        // This will be updated after backend deployment
-        return process.env.REACT_APP_API_URL || 'https://vit-student-showcase-backend.vercel.app/api';
+        return process.env.REACT_APP_API_URL || 'https://backendvgit.vercel.app/api';
     }
+    // In development, use localhost
     return 'http://localhost:5000/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
+
+console.log('🚀 API Base URL:', API_BASE_URL);
 
 // Create axios instance
 const api = axios.create({
@@ -17,29 +20,36 @@ const api = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
-    timeout: 10000, // 10 seconds timeout
+    timeout: 15000, // 15 seconds timeout
 });
 
-// Add token to requests if available
+// Add token to requests
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+        console.log('📤 API Request:', config.method?.toUpperCase(), config.url);
         return config;
     },
     (error) => {
+        console.error('❌ Request Error:', error);
         return Promise.reject(error);
     }
 );
 
-// Response interceptor for error handling
+// Handle responses and errors
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        console.log('✅ API Response:', response.status, response.config.url);
+        return response;
+    },
     (error) => {
+        console.error('❌ API Error:', error.response?.status, error.response?.data);
+        
         if (error.response?.status === 401) {
-            // Token expired or invalid
+            // Token expired - redirect to login
             localStorage.removeItem('token');
             window.location.href = '/auth';
         }
